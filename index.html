@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🌌 Broadcast Hub</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;background:#000009;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;color:#fff;overflow-x:hidden}
+:root{--p:#8b5cf6;--p2:#6d28d9;--b:#3b82f6;--c:#06b6d4;--g1:rgba(139,92,246,0.15);--g2:rgba(59,130,246,0.1);--glass:rgba(8,0,28,0.75);--border:rgba(139,92,246,0.25)}
+#cvs{position:fixed;inset:0;z-index:0}
+#app{position:relative;z-index:1;min-height:100vh;padding-bottom:90px}
+.page{display:none;padding:16px 16px 20px;min-height:100vh}
+.page.on{display:block;animation:fadeUp .35s cubic-bezier(.4,0,.2,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+ 
+/* Glass cards */
+.glass{background:var(--glass);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:20px}
+.glass2{background:rgba(15,0,40,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(139,92,246,0.2);border-radius:16px}
+ 
+/* Nav */
+#nav{position:fixed;bottom:0;left:0;right:0;z-index:100;display:flex;justify-content:space-around;align-items:stretch;background:rgba(4,0,16,0.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(139,92,246,0.3);padding:8px 4px calc(8px + env(safe-area-inset-bottom));height:calc(72px + env(safe-area-inset-bottom))}
+.nb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:1;padding:6px;background:none;border:none;color:rgba(255,255,255,0.35);font-size:10px;cursor:pointer;border-radius:14px;transition:all .25s}
+.nb .ic{font-size:22px;transition:transform .25s}
+.nb.on{color:rgba(200,170,255,0.95);background:rgba(139,92,246,0.15)}
+.nb.on .ic{transform:scale(1.1)}
+ 
+/* Headline gradient */
+.ghead{font-size:32px;font-weight:800;line-height:1.15;background:linear-gradient(135deg,#fff 0%,#c4b5fd 35%,#60a5fa 65%,#34d399 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.gsub{font-size:13px;color:rgba(255,255,255,0.42);line-height:1.6;margin-top:6px}
+ 
+/* Buttons */
+.btn{width:100%;padding:15px;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;transition:all .22s;position:relative;overflow:hidden;letter-spacing:.3px}
+.btnp{background:linear-gradient(135deg,var(--p),var(--b));color:#fff;box-shadow:0 4px 24px rgba(139,92,246,0.4)}
+.btnp:active{transform:scale(0.97);box-shadow:0 2px 12px rgba(139,92,246,0.3)}
+.btno{background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.35);color:rgba(200,175,255,0.9)}
+.btno:active{transform:scale(0.97)}
+.btnd{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff}
+.btn+.btn{margin-top:10px}
+ 
+/* Input */
+input,textarea,select{width:100%;padding:13px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.25);border-radius:13px;color:#fff;font-size:14px;outline:none;transition:all .22s;font-family:inherit;margin-bottom:13px;-webkit-appearance:none}
+input:focus,textarea:focus,select:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(139,92,246,0.15)}
+input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.25)}
+textarea{min-height:130px;resize:none;line-height:1.55}
+select option{background:#1a0a3a;color:#fff}
+label{display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:7px}
+ 
+/* Stat grid */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.scard{padding:18px 14px;text-align:center;border-radius:18px}
+.snum{font-size:30px;font-weight:800;background:linear-gradient(135deg,var(--c),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.slbl{font-size:11px;color:rgba(255,255,255,0.38);margin-top:2px}
+ 
+/* Section titles */
+.stitle{font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1.5px;margin:18px 0 10px}
+ 
+/* Channel / Template items */
+.item{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:8px;border-radius:16px}
+.ava{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--b));display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0}
+.iname{font-size:15px;font-weight:600;color:#fff}
+.imeta{font-size:11px;color:rgba(255,255,255,0.38);margin-top:2px;font-family:monospace}
+.del-btn{background:rgba(220,38,38,0.15);border:1px solid rgba(220,38,38,0.3);color:rgba(255,120,120,0.85);padding:7px 12px;border-radius:20px;font-size:13px;cursor:pointer;flex-shrink:0;transition:all .2s}
+.del-btn:active{transform:scale(0.95)}
+ 
+/* Checkboxes */
+.chk-row{display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;border-radius:12px;margin-bottom:6px;transition:background .15s}
+.chk-row:active{background:rgba(139,92,246,0.08)}
+.chk-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--p);cursor:pointer;flex-shrink:0}
+ 
+/* Divider */
+.divider{height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.3),transparent);margin:14px 0}
+ 
+/* Toast */
+#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-120px);z-index:500;padding:12px 22px;border-radius:30px;font-size:14px;font-weight:600;transition:transform .4s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;background:rgba(8,0,28,0.97);border:1px solid rgba(139,92,246,0.5);box-shadow:0 8px 32px rgba(0,0,0,0.6);max-width:90vw;text-align:center}
+#toast.on{transform:translateX(-50%) translateY(0)}
+ 
+/* Modal */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:200;align-items:flex-end;justify-content:center}
+.moverlay.on{display:flex}
+.modal{width:100%;max-width:520px;padding:22px;border-radius:24px 24px 0 0;animation:slideUp .32s cubic-bezier(.34,1.56,.64,1);padding-bottom:calc(22px + env(safe-area-inset-bottom))}
+.mtitle{font-size:18px;font-weight:800;color:#fff;margin-bottom:18px}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+ 
+/* Hero badge */
+.badge{display:inline-flex;align-items:center;gap:7px;padding:7px 15px;border-radius:30px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);color:rgba(195,165,255,0.9);font-size:12px;font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+ 
+/* Sending overlay */
+#soverlay{display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,7,0.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);align-items:center;justify-content:center;flex-direction:column}
+#soverlay.on{display:flex}
+.splanet{width:90px;height:90px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#7c3aed,#1e1b4b);box-shadow:0 0 50px rgba(124,58,237,0.7);animation:spin 2.5s linear infinite;position:relative;margin-bottom:22px}
+.splanet::after{content:'🛸';position:absolute;font-size:20px;animation:orbit 1.8s linear infinite;top:calc(50% - 10px);left:calc(50% - 10px)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes orbit{from{transform:rotate(0deg) translateX(40px) rotate(0deg)}to{transform:rotate(360deg) translateX(40px) rotate(-360deg)}}
+.stxt{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px}
+.ssub{font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:18px;text-align:center;max-width:260px}
+.pbar{width:220px;height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,var(--p),var(--c));border-radius:3px;transition:width .5s ease;box-shadow:0 0 10px var(--p)}
+ 
+/* Empty state */
+.empty{text-align:center;padding:32px 20px;color:rgba(255,255,255,0.35)}
+.empty-ic{font-size:42px;margin-bottom:10px}
+.empty-tx{font-size:14px;line-height:1.6}
+ 
+/* Float animation */
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.fl1{animation:fl 4s ease-in-out infinite}
+.fl2{animation:fl 4s ease-in-out .6s infinite}
+.fl3{animation:fl 4s ease-in-out 1.2s infinite}
+.fl4{animation:fl 4s ease-in-out 1.8s infinite}
+ 
+/* History */
+.hitem{padding:14px 16px;margin-bottom:8px;border-radius:16px;border-left:3px solid var(--p)}
+.htitle{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px}
+.hmeta{font-size:11px;color:rgba(255,255,255,0.38)}
+.hstats{display:flex;gap:14px;margin-top:8px;font-size:12px}
+.hs-ok{color:#10b981}
+.hs-er{color:#ef4444}
+ 
+/* Warning box */
+.warn{padding:13px 16px;border-radius:13px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:rgba(255,200,100,0.85);font-size:13px;text-align:center;margin-bottom:14px}
+ 
+/* Char counter */
+.charcnt{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.28);margin-top:-8px;margin-bottom:12px}
+ 
+/* Template card */
+.tmplcard{padding:16px;margin-bottom:10px}
+.tmplname{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px}
+.tmplprev{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5;max-height:56px;overflow:hidden}
+.tmplact{display:flex;gap:8px;margin-top:12px}
+.use-btn{flex:1;padding:8px;border-radius:20px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.35);color:rgba(195,165,255,0.9);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.use-btn:active{transform:scale(0.96)}
+ 
+/* Settings section */
+.ssec{padding:18px;margin-bottom:12px}
+.ssec-t{font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px}
+ 
+/* Header spacing */
+.phdr{text-align:center;padding:36px 4px 20px}
+ 
+/* Quick action row */
+.qarow{display:flex;gap:10px;margin-top:10px}
+.qa{flex:1;padding:13px 10px;text-align:center;border-radius:16px;cursor:pointer;border:none;color:rgba(195,165,255,0.9);font-size:13px;font-weight:600;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);transition:all .2s}
+.qa:active{transform:scale(0.96)}
+.qa-ic{font-size:22px;display:block;margin-bottom:3px}
+</style>
+</head>
+<body>
+ 
+<canvas id="cvs"></canvas>
+<div id="toast"></div>
+ 
+<!-- Sending overlay -->
+<div id="soverlay">
+  <div class="splanet"></div>
+  <div class="stxt" id="stxt">Отправляю...</div>
+  <div class="ssub" id="ssub">Подготовка</div>
+  <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+</div>
+ 
+<div id="app">
+ 
+<!-- HOME -->
+<div id="p-home" class="page on">
+  <div class="phdr">
+    <div class="badge" style="margin-bottom:14px"><span class="dot"></span><span id="bstatus">Подключено</span></div>
+    <div class="ghead">Broadcast<br>Hub 🌌</div>
+    <div class="gsub">Космическая рассылка объявлений<br>по всем твоим каналам</div>
+  </div>
+ 
+  <div class="sgrid">
+    <div class="glass scard fl1"><div class="snum" id="s-ch">0</div><div class="slbl">📢 Каналов</div></div>
+    <div class="glass scard fl2"><div class="snum" id="s-tp">0</div><div class="slbl">📝 Шаблонов</div></div>
+    <div class="glass scard fl3"><div class="snum" id="s-sn">0</div><div class="slbl">✅ Отправлено</div></div>
+    <div class="glass scard fl4"><div class="snum" id="s-hs">0</div><div class="slbl">📊 Рассылок</div></div>
+  </div>
+ 
+  <div id="home-warn" class="warn" style="display:none">⚠️ Настрой токен бота в разделе ⚙️</div>
+ 
+  <div class="glass" style="padding:18px;margin-bottom:12px">
+    <div class="stitle">⚡ Быстрые действия</div>
+    <button class="btn btnp" onclick="go('broadcast')">🚀 Начать рассылку</button>
+    <div class="qarow">
+      <button class="qa" onclick="openAddCh()"><span class="qa-ic">📢</span>Канал</button>
+      <button class="qa" onclick="openNewTmpl()"><span class="qa-ic">📝</span>Шаблон</button>
+      <button class="qa" onclick="go('history')"><span class="qa-ic">📊</span>История</button>
+    </div>
+  </div>
+ 
+  <div id="last-card" class="glass2" style="padding:16px;display:none">
+    <div class="stitle" style="margin-top:0">🕐 Последняя рассылка</div>
+    <div id="last-info" style="font-size:14px;color:rgba(255,255,255,0.75);line-height:1.6"></div>
+  </div>
+</div>
+ 
+<!-- CHANNELS -->
+<div id="p-channels" class="page">
+  <div class="phdr">
+    <div class="ghead" style="font-size:26px">Каналы 📢</div>
+    <div class="gsub">Добавь каналы — бот должен быть там администратором</div>
+  </div>
+  <button class="btn btnp" onclick="openAddCh()" style="margin-bottom:14px">➕ Добавить канал</button>
+  <div id="ch-list"></div>
+  <div id="ch-empty" class="glass empty" style="display:none">
+    <div class="empty-ic">📭</div>
+    <div class="empty-tx">Каналов пока нет.<br>Нажми «Добавить» выше!</div>
+  </div>
+</div>
+ 
+<!-- TEMPLATES -->
+<div id="p-templates" class="page">
+  <div class="phdr">
+    <div class="ghead" style="font-size:26px">Шаблоны 📝</div>
+    <div class="gsub">Готовые тексты — отправляй одной кнопкой</div>
+  </div>
+  <button class="btn btnp" onclick="openNewTmpl()" style="margin-bottom:14px">➕ Новый шаблон</button>
+  <div id="tmpl-list"></div>
+  <div id="tmpl-empty" class="glass empty" style="display:none">
+    <div class="empty-ic">📄</div>
+    <div class="empty-tx">Шаблонов пока нет.<br>Создай первый!</div>
+  </div>
+</div>
+ 
+<!-- BROADCAST -->
+<div id="p-broadcast" class="page">
+  <div class="phdr">
+    <div class="ghead" style="font-size:26px">Рассылка 🚀</div>
+    <div class="gsub">Выбери шаблон и каналы — я разошлю</div>
+  </div>
+ 
+  <div id="bc-warn" class="warn" style="display:none">⚠️ Добавь каналы и настрой токен бота</div>
+ 
+  <div class="glass2" style="padding:16px;margin-bottom:12px">
+    <label>Шаблон (или напиши вручную)</label>
+    <select id="bc-sel" onchange="applyTmpl()">
+      <option value="">✏️ Написать вручную</option>
+    </select>
+  </div>
+ 
+  <div class="glass2" style="padding:16px;margin-bottom:12px">
+    <label>Текст объявления</label>
+    <textarea id="bc-text" placeholder="Введи текст объявления...&#10;&#10;HTML разрешён:&#10;&lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;" oninput="updCC()"></textarea>
+    <div class="charcnt"><span id="ccnt">0 симв.</span><span>HTML поддерживается</span></div>
+  </div>
+ 
+  <div class="glass2" style="padding:16px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <label style="margin:0">Выбери каналы</label>
+      <button onclick="togAll()" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);color:rgba(195,165,255,.9);padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer">Все</button>
+    </div>
+    <div id="bc-ch-list">
+      <div style="color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:20px 0">Добавь каналы в разделе 📢</div>
+    </div>
+    <div id="bc-cnt" style="font-size:12px;color:rgba(255,255,255,.35);text-align:center;margin-top:8px"></div>
+  </div>
+ 
+  <button class="btn btnp" onclick="doBroadcast()">🚀 Отправить рассылку</button>
+  <div style="text-align:center;font-size:12px;color:rgba(255,255,255,.25);margin-top:8px;margin-bottom:12px">Задержка 1 сек между сообщениями</div>
+</div>
+ 
+<!-- HISTORY -->
+<div id="p-history" class="page">
+  <div class="phdr">
+    <div class="ghead" style="font-size:26px">История 📊</div>
+    <div class="gsub">Статистика всех рассылок</div>
+  </div>
+  <div id="hist-list"></div>
+  <div id="hist-empty" class="glass empty" style="display:none">
+    <div class="empty-ic">📈</div>
+    <div class="empty-tx">История пуста.<br>Сделай первую рассылку!</div>
+  </div>
+  <div id="hist-total" class="glass2" style="padding:16px;margin-top:14px;display:none">
+    <div class="stitle" style="margin-top:0">Итого за всё время</div>
+    <div class="sgrid" style="margin:0">
+      <div class="scard" style="padding:12px;background:transparent"><div class="snum" id="tot-ok">0</div><div class="slbl">✅ Отправлено</div></div>
+      <div class="scard" style="padding:12px;background:transparent"><div class="snum" id="tot-er">0</div><div class="slbl">❌ Ошибок</div></div>
+    </div>
+  </div>
+</div>
+ 
+<!-- SETTINGS -->
+<div id="p-settings" class="page">
+  <div class="phdr">
+    <div class="ghead" style="font-size:26px">Настройки ⚙️</div>
+    <div class="gsub">Конфигурация подключения</div>
+  </div>
+ 
+  <div class="glass ssec">
+    <div class="ssec-t">🤖 Telegram Bot Token</div>
+    <label>Токен бота (от @BotFather)</label>
+    <input type="password" id="tok-in" placeholder="1234567890:AABBcc...">
+    <button class="btn btnp" onclick="saveTok()">💾 Сохранить и проверить</button>
+    <div id="tok-st" style="margin-top:10px;font-size:13px;text-align:center;color:rgba(255,255,255,.4);min-height:18px"></div>
+  </div>
+ 
+  <div class="glass ssec">
+    <div class="ssec-t">🔒 Безопасность</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.65;margin-bottom:14px">
+      Токен хранится в памяти браузера (localStorage). При очистке кэша нужно ввести снова. Данные не передаются третьим лицам.
+    </div>
+    <button class="btn btnd" onclick="clearData()">🗑 Очистить все данные</button>
+  </div>
+ 
+  <div class="glass ssec">
+    <div class="ssec-t">ℹ️ О приложении</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.9">
+      🌌 Broadcast Hub v2.0<br>
+      Космическая система рассылки<br>
+      <span style="color:rgba(139,92,246,.7)">@rassilka_obyavleniy_bot</span><br><br>
+      Сделано с ❤️ by Claude AI
+    </div>
+  </div>
+</div>
+ 
+</div><!-- /app -->
+ 
+<!-- Nav bar -->
+<nav id="nav">
+  <button class="nb on" data-p="home" onclick="go('home')"><span class="ic">🏠</span><span>Главная</span></button>
+  <button class="nb" data-p="channels" onclick="go('channels')"><span class="ic">📢</span><span>Каналы</span></button>
+  <button class="nb" data-p="broadcast" onclick="go('broadcast')"><span class="ic">🚀</span><span>Рассылка</span></button>
+  <button class="nb" data-p="templates" onclick="go('templates')"><span class="ic">📝</span><span>Шаблоны</span></button>
+  <button class="nb" data-p="history" onclick="go('history')"><span class="ic">📊</span><span>История</span></button>
+  <button class="nb" data-p="settings" onclick="go('settings')"><span class="ic">⚙️</span><span>Настройки</span></button>
+</nav>
+ 
+<!-- Modal: Add Channel -->
+<div class="moverlay" id="m-ch">
+  <div class="modal glass">
+    <div class="mtitle">➕ Добавить канал</div>
+    <label>Название канала</label>
+    <input type="text" id="ch-nm" placeholder="Барахолка Кишинёв">
+    <label>Chat ID или @username</label>
+    <input type="text" id="ch-id-in" placeholder="-1001234567890 или @channel">
+    <div style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:16px;line-height:1.7">
+      💡 Как узнать Chat ID:<br>
+      1. Добавь @rassilka_obyavleniy_bot в канал как администратора<br>
+      2. Отправь любое сообщение в канале<br>
+      3. Открой: api.telegram.org/bot<b style="color:rgba(200,170,255,.7)">ТОКЕН</b>/getUpdates<br>
+      4. Найди <b style="color:rgba(140,200,255,.7)">"chat":{"id":-100123...}</b>
+    </div>
+    <button class="btn btnp" onclick="addCh()">✅ Добавить</button>
+    <button class="btn btno" onclick="closeM('m-ch')">Отмена</button>
+  </div>
+</div>
+ 
+<!-- Modal: New Template -->
+<div class="moverlay" id="m-tp">
+  <div class="modal glass">
+    <div class="mtitle">📝 Новый шаблон</div>
+    <label>Название</label>
+    <input type="text" id="tp-nm" placeholder="Продаю диван">
+    <label>Текст объявления</label>
+    <textarea id="tp-tx" placeholder="Текст объявления...&#10;&#10;&lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;, &lt;a href='url'&gt;ссылка&lt;/a&gt;"></textarea>
+    <button class="btn btnp" onclick="saveTmpl()">💾 Сохранить</button>
+    <button class="btn btno" onclick="closeM('m-tp')">Отмена</button>
+  </div>
+</div>
+ 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════ THREE.JS SCENE ═══════════════
+const cvs=document.getElementById('cvs');
+const rnd=new THREE.WebGLRenderer({canvas:cvs,antialias:true,alpha:true});
+rnd.setPixelRatio(Math.min(devicePixelRatio,2));
+rnd.setSize(innerWidth,innerHeight);
+rnd.setClearColor(0x000009,1);
+ 
+const sc=new THREE.Scene();
+sc.fog=new THREE.FogExp2(0x000009,0.045);
+const cam=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,1000);
+cam.position.z=5;
+ 
+// Stars
+const sg=new THREE.BufferGeometry();
+const N=4000,sp=new Float32Array(N*3);
+for(let i=0;i<N;i++){sp[i*3]=(Math.random()-.5)*120;sp[i*3+1]=(Math.random()-.5)*120;sp[i*3+2]=(Math.random()-.5)*120}
+sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+sc.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:.12,transparent:true,opacity:.85})));
+ 
+// Nebula layers
+[[0x7c3aed,700,28,.18],[0x2563eb,500,22,.12],[0x06b6d4,350,16,.1]].forEach(([col,cnt,spread,op])=>{
+  const g=new THREE.BufferGeometry(),p=new Float32Array(cnt*3);
+  for(let i=0;i<cnt;i++){p[i*3]=(Math.random()-.5)*spread;p[i*3+1]=(Math.random()-.5)*spread;p[i*3+2]=(Math.random()-.5)*spread*.25}
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));
+  sc.add(new THREE.Points(g,new THREE.PointsMaterial({color:col,size:.35,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false})));
+});
+ 
+// Planet texture (canvas-generated)
+const tc=document.createElement('canvas');tc.width=512;tc.height=256;
+const cx=tc.getContext('2d');
+const gr=cx.createLinearGradient(0,0,512,256);
+gr.addColorStop(0,'#1a0a3e');gr.addColorStop(.4,'#2d1a6e');gr.addColorStop(.7,'#3d1080');gr.addColorStop(1,'#1a0a3e');
+cx.fillStyle=gr;cx.fillRect(0,0,512,256);
+for(let i=0;i<80;i++){
+  const x=Math.random()*512,y=Math.random()*256,r=Math.random()*25+3;
+  const g2=cx.createRadialGradient(x,y,0,x,y,r);
+  g2.addColorStop(0,`rgba(${100+Math.random()*100|0},${40+Math.random()*60|0},${200+Math.random()*55|0},${.35*Math.random()})`);
+  g2.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=g2;cx.beginPath();cx.arc(x,y,r,0,Math.PI*2);cx.fill();
+}
+// Cloud bands
+for(let i=0;i<5;i++){
+  cx.fillStyle=`rgba(80,40,180,${.08+Math.random()*.06})`;
+  cx.fillRect(0,40+i*40,512,15+Math.random()*10);
+}
+ 
+const planet=new THREE.Mesh(
+  new THREE.SphereGeometry(1.9,64,64),
+  new THREE.MeshPhongMaterial({map:new THREE.CanvasTexture(tc),emissive:new THREE.Color(0x180840),emissiveIntensity:.4,shininess:25})
+);
+planet.position.set(2.8,-1.2,-3.5);sc.add(planet);
+ 
+// Atmosphere
+const atm=new THREE.Mesh(
+  new THREE.SphereGeometry(2.12,32,32),
+  new THREE.MeshPhongMaterial({color:0x8b5cf6,transparent:true,opacity:.13,side:THREE.FrontSide,blending:THREE.AdditiveBlending,depthWrite:false})
+);
+atm.position.copy(planet.position);sc.add(atm);
+ 
+// Outer glow sphere
+const glow=new THREE.Mesh(
+  new THREE.SphereGeometry(2.4,32,32),
+  new THREE.MeshPhongMaterial({color:0x3b82f6,transparent:true,opacity:.05,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false})
+);
+glow.position.copy(planet.position);sc.add(glow);
+ 
+// Ring
+const ringG=new THREE.RingGeometry(2.5,3.3,80);
+const ringM=new THREE.MeshBasicMaterial({color:0x8b5cf6,transparent:true,opacity:.18,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false});
+const ring=new THREE.Mesh(ringG,ringM);
+ring.position.copy(planet.position);ring.rotation.x=Math.PI/3.2;sc.add(ring);
+ 
+// Second smaller ring
+const ring2=new THREE.Mesh(
+  new THREE.RingGeometry(3.6,4.1,80),
+  new THREE.MeshBasicMaterial({color:0x06b6d4,transparent:true,opacity:.08,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false})
+);
+ring2.position.copy(planet.position);ring2.rotation.x=Math.PI/3.2;ring2.rotation.z=.3;sc.add(ring2);
+ 
+// Moon
+const moon=new THREE.Mesh(
+  new THREE.SphereGeometry(.32,16,16),
+  new THREE.MeshPhongMaterial({color:0x4c1d95,emissive:0x2d1b69,shininess:60})
+);
+sc.add(moon);
+ 
+// Small moon 2
+const moon2=new THREE.Mesh(
+  new THREE.SphereGeometry(.18,12,12),
+  new THREE.MeshPhongMaterial({color:0x1e3a5f,emissive:0x0c1f3a,shininess:40})
+);
+sc.add(moon2);
+ 
+// Lights
+sc.add(new THREE.AmbientLight(0x18083e,2.5));
+const dl=new THREE.DirectionalLight(0xffffff,1.8);dl.position.set(5,3,5);sc.add(dl);
+const pl=new THREE.PointLight(0x8b5cf6,2.5,25);pl.position.set(-3,2,2);sc.add(pl);
+const bl=new THREE.PointLight(0x3b82f6,2,18);bl.position.set(3,-2,1);sc.add(bl);
+const cl=new THREE.PointLight(0x06b6d4,1.5,20);cl.position.set(0,4,-2);sc.add(cl);
+ 
+// Shooting stars
+const shots=[];
+function mkShot(){
+  const g=new THREE.BufferGeometry();
+  const l=Math.random()*2.5+1;
+  g.setAttribute('position',new THREE.BufferAttribute(new Float32Array([0,0,0,l,.25,0]),3));
+  const m=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.9,blending:THREE.AdditiveBlending});
+  const s=new THREE.Line(g,m);
+  s.position.set((Math.random()-.5)*22,(Math.random()-.5)*12,-6);
+  s.rotation.z=-Math.PI/5;
+  s.userData={v:Math.random()*.4+.15,life:0};
+  sc.add(s);shots.push(s);
+}
+setInterval(mkShot,2800);mkShot();
+ 
+// Animate
+let t=0;
+(function loop(){
+  requestAnimationFrame(loop);t+=.005;
+  planet.rotation.y=t*.25;
+  ring.rotation.z=t*.08;ring2.rotation.z=-t*.05;
+  const pulse=1+Math.sin(t*2.2)*.025;
+  atm.scale.setScalar(pulse);glow.scale.setScalar(1+Math.sin(t*1.5)*.04);
+  moon.position.set(planet.position.x+Math.cos(t*.75)*3.2,planet.position.y+Math.sin(t*.75)*.6,planet.position.z+Math.sin(t*.75)*1.8);
+  moon2.position.set(planet.position.x+Math.cos(t*1.4+2)*4.2,planet.position.y+Math.sin(t*1.4+2)*1.2,planet.position.z+Math.sin(t*1.4+2)*2.5);
+  pl.position.x=Math.cos(t*.45)*5;pl.position.z=Math.sin(t*.45)*5;
+  cl.position.x=Math.cos(t*.3+1.5)*6;cl.position.z=Math.sin(t*.3+1.5)*4;
+  cam.position.x=Math.sin(t*.18)*.35;cam.position.y=Math.cos(t*.13)*.22;
+  for(let i=shots.length-1;i>=0;i--){
+    const s=shots[i];s.position.x+=s.userData.v;s.position.y-=s.userData.v*.28;
+    s.userData.life+=.022;s.material.opacity=Math.max(0,.9-s.userData.life);
+    if(s.userData.life>1.2){sc.remove(s);shots.splice(i,1)}
+  }
+  rnd.render(sc,cam);
+})();
+ 
+window.addEventListener('resize',()=>{
+  cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();
+  rnd.setSize(innerWidth,innerHeight);
+});
+ 
+// ═══════════════ APP LOGIC ═══════════════
+ 
+let channels=JSON.parse(localStorage.getItem('bc_ch')||'[]');
+let templates=JSON.parse(localStorage.getItem('bc_tp')||'[]');
+let history=JSON.parse(localStorage.getItem('bc_hs')||'[]');
+let token=localStorage.getItem('bc_tok')||'';
+ 
+const save=()=>{
+  localStorage.setItem('bc_ch',JSON.stringify(channels));
+  localStorage.setItem('bc_tp',JSON.stringify(templates));
+  localStorage.setItem('bc_hs',JSON.stringify(history));
+};
+ 
+// Toast
+let tid;
+function toast(msg,dur=2600){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('on');
+  clearTimeout(tid);tid=setTimeout(()=>el.classList.remove('on'),dur);
+}
+ 
+// Navigation
+function go(p){
+  document.querySelectorAll('.page').forEach(e=>e.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(e=>e.classList.remove('on'));
+  document.getElementById('p-'+p).classList.add('on');
+  document.querySelector(`.nb[data-p="${p}"]`).classList.add('on');
+  document.getElementById('app').scrollTop=0;
+  ({home:refreshHome,channels:renderCh,templates:renderTmpl,broadcast:refreshBC,history:renderHist,settings:refreshSett})[p]?.();
+}
+ 
+// ── Home ──
+function refreshHome(){
+  document.getElementById('s-ch').textContent=channels.length;
+  document.getElementById('s-tp').textContent=templates.length;
+  document.getElementById('s-sn').textContent=history.reduce((a,h)=>a+(h.sent||0),0);
+  document.getElementById('s-hs').textContent=history.length;
+  document.getElementById('home-warn').style.display=!token?'block':'none';
+  const lc=document.getElementById('last-card');
+  if(history.length>0){
+    const l=history[history.length-1];
+    lc.style.display='block';
+    document.getElementById('last-info').innerHTML=`<b style="color:#fff">${esc(l.tname)}</b><br><span style="color:rgba(255,255,255,.45)">${l.date}</span> · ✅${l.sent} / ❌${l.fail}`;
+  }else lc.style.display='none';
+}
+ 
+// ── Channels ──
+function renderCh(){
+  const list=document.getElementById('ch-list'),empty=document.getElementById('ch-empty');
+  if(!channels.length){list.innerHTML='';empty.style.display='block';return}
+  empty.style.display='none';
+  list.innerHTML=channels.map((c,i)=>`
+    <div class="glass item" style="animation:fadeUp .2s ease ${i*.04}s both">
+      <div class="ava">${c.name.charAt(0).toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div class="iname">${esc(c.name)}</div>
+        <div class="imeta">${esc(c.id)}</div>
+      </div>
+      <button class="del-btn" onclick="delCh(${i})">🗑</button>
+    </div>`).join('');
+}
+function openAddCh(){
+  document.getElementById('ch-nm').value='';document.getElementById('ch-id-in').value='';
+  document.getElementById('m-ch').classList.add('on');
+}
+function addCh(){
+  const nm=document.getElementById('ch-nm').value.trim(),id=document.getElementById('ch-id-in').value.trim();
+  if(!nm||!id){toast('⚠️ Заполни оба поля');return}
+  channels.push({name:nm,id});save();closeM('m-ch');renderCh();toast('✅ Канал добавлен: '+nm);
+}
+function delCh(i){const n=channels[i].name;channels.splice(i,1);save();renderCh();toast('🗑 Удалён: '+n)}
+ 
+// ── Templates ──
+function renderTmpl(){
+  const list=document.getElementById('tmpl-list'),empty=document.getElementById('tmpl-empty');
+  if(!templates.length){list.innerHTML='';empty.style.display='block';return}
+  empty.style.display='none';
+  list.innerHTML=templates.map((t,i)=>`
+    <div class="glass2 tmplcard" style="animation:fadeUp .2s ease ${i*.04}s both">
+      <div class="tmplname">📝 ${esc(t.name)}</div>
+      <div class="tmplprev">${esc(t.text.substring(0,140))}${t.text.length>140?'…':''}</div>
+      <div class="divider"></div>
+      <div class="tmplact">
+        <button class="use-btn" onclick="useTmpl(${i})">🚀 Использовать</button>
+        <button class="del-btn" onclick="delTmpl(${i})">🗑</button>
+      </div>
+    </div>`).join('');
+}
+function openNewTmpl(){
+  document.getElementById('tp-nm').value='';document.getElementById('tp-tx').value='';
+  document.getElementById('m-tp').classList.add('on');
+}
+function saveTmpl(){
+  const nm=document.getElementById('tp-nm').value.trim(),tx=document.getElementById('tp-tx').value.trim();
+  if(!nm||!tx){toast('⚠️ Заполни название и текст');return}
+  templates.push({name:nm,text:tx,date:new Date().toLocaleDateString('ru')});
+  save();closeM('m-tp');renderTmpl();toast('✅ Шаблон сохранён: '+nm);
+}
+function delTmpl(i){const n=templates[i].name;templates.splice(i,1);save();renderTmpl();toast('🗑 Шаблон удалён: '+n)}
+function useTmpl(i){go('broadcast');setTimeout(()=>{document.getElementById('bc-text').value=templates[i].text;updCC();toast('✅ Шаблон применён')},180)}
+ 
+// ── Broadcast ──
+function refreshBC(){
+  const sel=document.getElementById('bc-sel');
+  sel.innerHTML='<option value="">✏️ Написать вручную</option>'+templates.map((t,i)=>`<option value="${i}">${esc(t.name)}</option>`).join('');
+  const list=document.getElementById('bc-ch-list');
+  if(!channels.length){
+    list.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:20px 0">Добавь каналы в разделе 📢</div>';
+    updBcCnt();return;
+  }
+  list.innerHTML=channels.map((c,i)=>`
+    <label class="chk-row">
+      <input type="checkbox" id="bc-c${i}" checked onchange="updBcCnt()">
+      <div><div style="font-size:14px;color:#fff;font-weight:500">${esc(c.name)}</div><div style="font-size:11px;color:rgba(255,255,255,.35)">${esc(c.id)}</div></div>
+    </label>`).join('');
+  updBcCnt();
+}
+function updBcCnt(){
+  const sel=channels.filter((_,i)=>document.getElementById('bc-c'+i)?.checked).length;
+  document.getElementById('bc-cnt').textContent=channels.length?`Выбрано: ${sel} из ${channels.length}`:'';}
+function togAll(){
+  const boxes=channels.map((_,i)=>document.getElementById('bc-c'+i)).filter(Boolean);
+  const all=boxes.every(b=>b.checked);boxes.forEach(b=>b.checked=!all);updBcCnt();
+}
+function applyTmpl(){
+  const v=document.getElementById('bc-sel').value;
+  document.getElementById('bc-text').value=v===''?'':templates[+v].text;updCC();
+}
+function updCC(){document.getElementById('ccnt').textContent=document.getElementById('bc-text').value.length+' симв.'}
+ 
+async function doBroadcast(){
+  if(!token){toast('⚠️ Настрой токен бота в ⚙️');return}
+  const txt=document.getElementById('bc-text').value.trim();
+  if(!txt){toast('⚠️ Введи текст объявления');return}
+  const sel=channels.filter((_,i)=>document.getElementById('bc-c'+i)?.checked);
+  if(!sel.length){toast('⚠️ Выбери хотя бы один канал');return}
+  const vi=document.getElementById('bc-sel').value;
+  const tn=vi!==''?templates[+vi].name:'Ручной ввод';
+  const ov=document.getElementById('soverlay');
+  ov.classList.add('on');
+  let ok=0,er=0;
+  for(let i=0;i<sel.length;i++){
+    document.getElementById('stxt').textContent=`Отправляю ${i+1} / ${sel.length}`;
+    document.getElementById('ssub').textContent=sel[i].name;
+    document.getElementById('pfill').style.width=Math.round(i/sel.length*100)+'%';
+    try{
+      const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:sel[i].id,text:txt,parse_mode:'HTML'})});
+      (await r.json()).ok?ok++:er++;
+    }catch{er++}
+    if(i<sel.length-1)await slp(1000);
+  }
+  document.getElementById('pfill').style.width='100%';
+  await slp(600);ov.classList.remove('on');
+  const now=new Date();
+  history.push({tname:tn,date:now.toLocaleDateString('ru')+' '+now.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}),channels:sel.map(c=>c.name),sent:ok,fail:er});
+  if(history.length>60)history.shift();save();
+  toast((er===0?'🎉':'⚠️')+` Готово! ✅${ok} / ❌${er}`,4000);
+  refreshHome();
+}
+ 
+// ── History ──
+function renderHist(){
+  const list=document.getElementById('hist-list'),empty=document.getElementById('hist-empty'),tot=document.getElementById('hist-total');
+  if(!history.length){list.innerHTML='';empty.style.display='block';tot.style.display='none';return}
+  empty.style.display='none';tot.style.display='block';
+  list.innerHTML=[...history].reverse().map((h,i)=>`
+    <div class="glass2 hitem" style="animation:fadeUp .15s ease ${i*.03}s both">
+      <div class="htitle">📝 ${esc(h.tname)}</div>
+      <div class="hmeta">📅 ${esc(h.date)} · ${h.channels.length} каналов</div>
+      <div class="hstats">
+        <span class="hs-ok">✅ ${h.sent} отпр.</span>
+        <span class="hs-er" style="color:${h.fail>0?'#ef4444':'rgba(255,255,255,.28)'}">❌ ${h.fail} ошиб.</span>
+      </div>
+    </div>`).join('');
+  document.getElementById('tot-ok').textContent=history.reduce((a,h)=>a+(h.sent||0),0);
+  document.getElementById('tot-er').textContent=history.reduce((a,h)=>a+(h.fail||0),0);
+}
+ 
+// ── Settings ──
+function refreshSett(){
+  if(token)document.getElementById('tok-in').value=token;
+}
+async function saveTok(){
+  const v=document.getElementById('tok-in').value.trim();
+  if(!v){toast('⚠️ Введи токен');return}
+  const st=document.getElementById('tok-st');
+  st.textContent='⏳ Проверяю...';st.style.color='rgba(255,255,255,.5)';
+  try{
+    const r=await fetch(`https://api.telegram.org/bot${v}/getMe`);
+    const d=await r.json();
+    if(d.ok){
+      token=v;localStorage.setItem('bc_tok',v);
+      st.innerHTML=`<span style="color:#10b981">✅ Бот: @${d.result.username}</span>`;
+      document.getElementById('bstatus').textContent='@'+d.result.username;
+      toast('✅ Бот подключён: @'+d.result.username);
+    }else{st.innerHTML='<span style="color:#ef4444">❌ Неверный токен</span>';toast('❌ Неверный токен')}
+  }catch(e){st.innerHTML='<span style="color:#ef4444">❌ Ошибка сети</span>';toast('❌ Ошибка: '+e.message)}
+}
+function clearData(){
+  if(!confirm('Очистить все данные? Отменить нельзя.'))return;
+  channels=[];templates=[];history=[];token='';localStorage.clear();save();
+  toast('🗑 Данные очищены');refreshHome();
+}
+ 
+// ── Modals ──
+function closeM(id){document.getElementById(id).classList.remove('on')}
+document.querySelectorAll('.moverlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on')}));
+ 
+// ── Utils ──
+const slp=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+ 
+// ── Init ──
+refreshHome();
+// Load token status
+if(token){
+  fetch(`https://api.telegram.org/bot${token}/getMe`).then(r=>r.json()).then(d=>{
+    if(d.ok)document.getElementById('bstatus').textContent='@'+d.result.username;
+  }).catch(()=>{});
+}
+</script>
+</body>
+</html>
+ 
